@@ -4,6 +4,7 @@ import { Sprout, LockKeyhole, ChevronRight, Menu, X, CircleHelp, ArrowUpRight, L
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { modules } from '@/lib/modules';
+import { ThemeToggle } from './theme-toggle';
 
 export function AppShell({ children, title = 'Life Dashboard' }: { children: ReactNode; title?: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -30,7 +31,7 @@ export function AppShell({ children, title = 'Life Dashboard' }: { children: Rea
     <div className="app-main">
       <header className="topbar">
         <div className="breadcrumb"><Button variant="ghost" size="icon" className="mobile-menu" aria-label={menuOpen ? 'Tutup navigasi' : 'Buka navigasi'} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X /> : <Menu />}</Button><span>Ruang pertumbuhan</span><ChevronRight size={12} className="crumb-chevron" /><strong>{title}</strong></div>
-        <div className="topbar-end"><span className="phase-badge"><i className="phase-dot" />Tahap awal</span><div className="avatar-mark" aria-label="TUMBUH"><Sprout size={17} /></div></div>
+        <div className="topbar-end"><ThemeToggle /><span className="phase-badge"><i className="phase-dot" />Tahap awal</span><div className="avatar-mark" aria-label="TUMBUH"><Sprout size={17} /></div></div>
       </header>
       <main className="content" id="main-content">{children}</main>
     </div>
