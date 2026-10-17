@@ -33,10 +33,6 @@ describe("Habit activity library", () => {
   });
 
   it("never presents practical doses as scientific optima", () => {
-    for (const a of activities) {
-      const text = `${a.title} ${a.evidenceNote} ${a.why}`;
-      expect(text).not.toMatch(/dosis optimal ilmiah(?! yang ditetapkan)/i.test(text) && /bukan dosis/i.test(text) === false ? /$^/ : /$^/);
-    }
     // Practical dose formats must be flagged as practical, not scientific.
     const doseActivities = activities.filter(a => /10 menit|25 menit|dua halaman|lima menit|05\.00/.test(a.title));
     for (const a of doseActivities) {
