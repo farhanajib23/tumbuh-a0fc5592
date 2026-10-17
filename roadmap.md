@@ -4,4 +4,5 @@
 - [x] Add unavailable module pages and app-specific page metadata.
 - [x] Verify navigation and desktop/mobile layouts.
 - [x] Dark mode toggle with saved preference.
+- [x] Habit & Routine Tracker: perpustakaan 60 aktivitas bersumber, rutinitas lokal (localStorage), panduan 9 tahap.
 - [ ] AI feature (waiting for user to choose feature type).

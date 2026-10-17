@@ -2,7 +2,7 @@ import { LayoutDashboard, CircleCheck, BookOpen, Flag, Wallet, GraduationCap, Ba
 
 export const modules = [
   { id: 'dashboard', name: 'Life Dashboard', description: 'Lihat gambaran perjalanan pertumbuhanmu.', icon: LayoutDashboard, tone: 'sage', available: true },
-  { id: 'habit', name: 'Habit & Routine Tracker', description: 'Bangun kebiasaan kecil yang berarti.', icon: CircleCheck, tone: 'blue', available: false },
+  { id: 'habit', name: 'Habit & Routine Tracker', description: 'Bangun kebiasaan kecil yang berarti.', icon: CircleCheck, tone: 'blue', available: true, path: '/habit' },
   { id: 'journal', name: 'Journal & Self-Reflection', description: 'Ruang untuk mendengar dan memahami diri.', icon: BookOpen, tone: 'rose', available: false },
   { id: 'goals', name: 'Goals & Action Planner', description: 'Ubah tujuan menjadi langkah yang nyata.', icon: Flag, tone: 'violet', available: false },
   { id: 'finance', name: 'Personal Finance', description: 'Kelola keuangan dengan lebih sadar.', icon: Wallet, tone: 'ochre', available: false },

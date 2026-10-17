@@ -23,7 +23,7 @@ export function Dashboard() {
     <section className="modules-section" aria-labelledby="module-heading"><div className="section-heading"><div><h2 id="module-heading">Ruang untuk bertumbuh</h2><p>Berbagai sisi kehidupan, dalam satu perjalanan.</p></div><span className="section-caption">8 modul · 1 perjalanan</span></div>
       <div className="modules-grid">{modules.map(module => {
         const body = <><div className="module-top"><div className={`module-icon tone-${module.tone}`}><module.icon strokeWidth={1.7} /></div><ArrowUpRight className="module-arrow" /></div><h3>{module.name}</h3><p>{module.description}</p><span className={`module-status ${module.available ? 'is-available' : ''}`}>{module.available ? <><Check />Kerangka tersedia</> : <><LockKeyhole />Belum tersedia</>}</span></>;
-        return module.available ? <Link key={module.id} to="/" className="module-card" aria-label={`${module.name} — kerangka tersedia`}>{body}</Link> : <Link key={module.id} to="/modul/$module" params={{ module: module.id }} className="module-card" aria-label={`${module.name} — belum tersedia`}>{body}</Link>;
+        return module.available ? <Link key={module.id} to={'path' in module ? module.path : '/'} className="module-card" aria-label={`${module.name} — tersedia`}>{body}</Link> : <Link key={module.id} to="/modul/$module" params={{ module: module.id }} className="module-card" aria-label={`${module.name} — belum tersedia`}>{body}</Link>;
       })}</div>
     </section>
     <footer className="dashboard-footer"><span><Heart size={12} />Bertumbuh bukan tentang menjadi sempurna, tetapi menjadi lebih sadar.</span><span>Pelan-pelan, tetap bertumbuh.</span></footer>

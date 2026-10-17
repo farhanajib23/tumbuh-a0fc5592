@@ -19,7 +19,7 @@ export function AppShell({ children, title = 'Life Dashboard' }: { children: Rea
       <p className="sidebar-label">Ruang pertumbuhan</p>
       <nav className="sidebar-nav">
         {modules.map(module => module.available ?
-          <Link key={module.id} to="/" className="nav-link" activeOptions={{ exact: true }} onClick={() => setMenuOpen(false)}><module.icon />{module.name}</Link> :
+          <Link key={module.id} to={'path' in module ? module.path : '/'} className="nav-link" activeOptions={{ exact: true }} onClick={() => setMenuOpen(false)}><module.icon />{module.name}</Link> :
           <Link key={module.id} to="/modul/$module" params={{ module: module.id }} className="nav-link" onClick={() => setMenuOpen(false)} title={`${module.name} — belum tersedia`}><module.icon /><span>{module.name}</span><LockKeyhole className="nav-lock" aria-label="Belum tersedia" /></Link>)}
       </nav>
       <div className="sidebar-bottom">
