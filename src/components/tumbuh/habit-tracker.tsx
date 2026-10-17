@@ -73,6 +73,7 @@ function ActivityDetail({ activity, onClose, onAdd }: { activity: Activity; onCl
             <ul className="source-list">
               {activity.sourceKeys.map(key => {
                 const s = sources[key];
+                if (!s) return null;
                 return <li key={key}><a href={s.url} target="_blank" rel="noopener noreferrer">{s.label}<ExternalLink size={11} /></a><span className="source-kind">{s.kind}</span></li>;
               })}
             </ul>

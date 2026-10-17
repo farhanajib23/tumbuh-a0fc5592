@@ -21,14 +21,14 @@ describe("Habit activity library", () => {
       for (const key of a.sourceKeys) {
         const s = sources[key];
         expect(s, `source ${key}`).toBeDefined();
-        expect(s.url).toMatch(/^https:\/\//);
+        expect(s?.url).toMatch(/^https:\/\//);
       }
     }
   });
 
   it("labels book/app inspirations honestly as not proof of efficacy", () => {
     for (const key of ["atomic", "tiny", "fiveam", "deepwork", "fabulous", "finch"]) {
-      expect(sources[key].label).toContain("bukan bukti efektivitas");
+      expect(sources[key]?.label).toContain("bukan bukti efektivitas");
     }
   });
 
