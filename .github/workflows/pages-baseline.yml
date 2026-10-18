@@ -1,0 +1,106 @@
+name: TUMBUH - Verifikasi baseline Pages
+
+on:
+  push:
+    branches: [preview/github-pages]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-baseline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Ambil kode commit pemicu
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Siapkan Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Siapkan Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Catat runtime dan commit
+        run: |
+          node --version
+          bun --version
+          git rev-parse HEAD
+
+      - name: Instalasi dengan lockfile terkunci
+        id: install
+        run: bun install --frozen-lockfile
+
+      - name: Build aplikasi saat ini
+        id: build
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        continue-on-error: true
+        run: bun run build
+
+      - name: Lint
+        id: lint
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        continue-on-error: true
+        run: bun run lint
+
+      - name: Pemeriksaan TypeScript
+        id: types
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        continue-on-error: true
+        run: bun run tsc --noEmit
+
+      - name: Test
+        id: tests
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        continue-on-error: true
+        run: bun run test
+
+      - name: Daftar keluaran build tanpa membaca isi file
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: |
+          for dir in dist .output .nitro; do
+            if [ -d "$dir" ]; then
+              echo "=== $dir ==="
+              find "$dir" -maxdepth 3 -type f | sort | head -n 120
+            fi
+          done
+          git status --short
+
+      - name: Ringkasan dan status akhir
+        if: ${{ always() }}
+        env:
+          INSTALL: ${{ steps.install.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          LINT: ${{ steps.lint.outcome }}
+          TYPES: ${{ steps.types.outcome }}
+          TESTS: ${{ steps.tests.outcome }}
+        run: |
+          {
+            echo '## Baseline TUMBUH untuk GitHub Pages'
+            echo "Commit: $GITHUB_SHA"
+            echo "Branch: $GITHUB_REF_NAME"
+            echo ''
+            echo '| Pemeriksaan | Hasil |'
+            echo '| --- | --- |'
+            echo "| Instalasi | $INSTALL |"
+            echo "| Build | $BUILD |"
+            echo "| Lint | $LINT |"
+            echo "| TypeScript | $TYPES |"
+            echo "| Test | $TESTS |"
+            echo ''
+            echo 'Workflow ini tidak melakukan deployment. Keluaran build belum membuktikan kesiapan Pages.'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$INSTALL" != success ] || [ "$BUILD" != success ] || [ "$LINT" != success ] || [ "$TYPES" != success ] || [ "$TESTS" != success ]; then
+            exit 1
+          fi
