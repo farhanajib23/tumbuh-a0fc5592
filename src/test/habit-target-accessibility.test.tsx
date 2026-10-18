@@ -12,7 +12,7 @@ describe('Label target dan deskripsi satuan', () => {
     render(<HabitTargetPanel habit={habit} today="2026-10-18" disabled={false} onChange={onChange} />);
     fireEvent.click(screen.getByRole('button', { name: 'Ubah target Membaca' }));
     const input = screen.getByLabelText('Target baru Membaca', { exact: true });
-    expect(input).toBe(screen.getByRole('spinbutton', { name: 'Target baru Membaca', exact: true }));
+    expect(input).toBe(screen.getByRole('spinbutton', { name: /^Target baru Membaca$/ }));
     expect(input).toHaveAccessibleDescription('Satuan tetap: menit');
     fireEvent.change(input, { target: { value: '30' } });
     fireEvent.click(screen.getByRole('button', { name: 'Jadwalkan target Membaca' }));
