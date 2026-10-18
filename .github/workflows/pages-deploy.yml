@@ -1,0 +1,121 @@
+name: TUMBUH - Publikasi GitHub Pages
+
+on:
+  push:
+    branches: [preview/github-pages]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tumbuh-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Identitas build
+        run: |
+          git rev-parse HEAD
+          node --version
+          bun --version
+      - name: Instalasi terkunci
+        run: bun install --frozen-lockfile
+      - name: Pemeriksaan TypeScript
+        run: bun run tsc --noEmit
+      - name: Test
+        run: bun run test
+      - name: Lint dilaporkan terpisah untuk preview
+        id: lint
+        continue-on-error: true
+        run: bun run lint
+      - name: Build statis untuk subfolder Pages
+        env:
+          TUMBUH_PAGES: 'true'
+        run: bun run build
+      - name: Siapkan dan periksa artifact statis
+        run: |
+          node --input-type=module <<'NODE'
+          import { existsSync, mkdirSync, cpSync, readFileSync, writeFileSync } from 'node:fs';
+          import { join } from 'node:path';
+          const source = '.output/public';
+          const output = '.pages-site';
+          const prefix = '/tumbuh-a0fc5592/';
+          if (!existsSync(source)) throw new Error('Folder publik hasil build tidak ditemukan.');
+          mkdirSync(output, { recursive: true });
+          cpSync(source, output, { recursive: true });
+          const nested = join(source, 'tumbuh-a0fc5592');
+          if (existsSync(join(nested, 'index.html'))) {
+            cpSync(nested, output, { recursive: true });
+          }
+          for (const page of ['index.html', 'habit/index.html']) {
+            const path = join(output, page);
+            if (!existsSync(path)) throw new Error(`HTML wajib tidak ditemukan: ${page}`);
+            const html = readFileSync(path, 'utf8');
+            if (!html.includes(prefix + 'assets/')) throw new Error(`Prefix aset belum benar: ${page}`);
+            const refs = [...html.matchAll(/(?:src|href)=["']([^"']+)["']/g)].map(m => m[1]);
+            for (const ref of refs) {
+              if (!ref.startsWith(prefix + 'assets/')) continue;
+              const local = ref.slice(prefix.length).split(/[?#]/)[0];
+              if (!existsSync(join(output, local))) throw new Error(`Aset tidak ditemukan: ${local}`);
+            }
+          }
+          writeFileSync(join(output, '.nojekyll'), '');
+          writeFileSync(join(output, 'preview-version.json'), JSON.stringify({ commit: process.env.GITHUB_SHA, branch: process.env.GITHUB_REF_NAME }, null, 2) + '\n');
+          console.log('HTML dashboard/habit dan prefix aset lolos pemeriksaan statis.');
+          NODE
+      - name: Upload hanya hasil statis
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .pages-site
+      - name: Ringkasan build preview
+        if: ${{ always() }}
+        env:
+          LINT_RESULT: ${{ steps.lint.outcome }}
+        run: |
+          {
+            echo '## Build preview TUMBUH'
+            echo "Commit: $GITHUB_SHA"
+            echo "Branch: $GITHUB_REF_NAME"
+            echo "Lint: $LINT_RESULT (tidak memblokir preview; bukan semua pemeriksaan lulus)"
+            echo 'Periksa status tiap langkah untuk TypeScript, test, build, dan artifact.'
+            echo 'Pemeriksaan visual browser belum dilakukan oleh workflow ini.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    needs: build
+    if: ${{ github.ref == 'refs/heads/preview/github-pages' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy artifact ke situs Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+      - name: Catat URL deployment
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          {
+            echo '## Deployment TUMBUH'
+            echo "URL: $PAGE_URL"
+            echo "Commit: $GITHUB_SHA"
+            echo "Branch: $GITHUB_REF_NAME"
+            echo 'Deployment selesai; tampilan dan interaksi masih perlu diperiksa di browser.'
+          } >> "$GITHUB_STEP_SUMMARY"
