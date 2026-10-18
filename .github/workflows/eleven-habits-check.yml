@@ -1,0 +1,62 @@
+name: TUMBUH - Verifikasi 11 kebiasaan
+
+on:
+  push:
+    branches: [feature/eleven-daily-habits]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: eleven-habits-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: ${{ matrix.check }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - check: TypeScript
+            command: bun run tsc --noEmit
+          - check: Test
+            command: bun run test
+          - check: Lint
+            command: bun run lint
+          - check: Build Pages
+            command: bun run build
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Instalasi terkunci
+        run: bun install --frozen-lockfile
+      - name: Jalankan pemeriksaan
+        env:
+          CHECK_COMMAND: ${{ matrix.command }}
+          TUMBUH_PAGES: 'true'
+          VITE_BUILD_SHA: ${{ github.sha }}
+          VITE_BUILD_BRANCH: ${{ github.ref_name }}
+        run: bash -e -o pipefail -c "$CHECK_COMMAND"
+      - name: Ringkasan
+        if: ${{ always() }}
+        env:
+          CHECK_NAME: ${{ matrix.check }}
+          RESULT: ${{ job.status }}
+        run: |
+          {
+            echo "Pemeriksaan: $CHECK_NAME"
+            echo "Status: $RESULT"
+            echo "Commit: $GITHUB_SHA"
+            echo 'Tidak melakukan deployment. Pengujian visual lintas viewport belum dilakukan.'
+          } >> "$GITHUB_STEP_SUMMARY"

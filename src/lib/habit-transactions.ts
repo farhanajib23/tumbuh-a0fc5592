@@ -15,14 +15,14 @@ export interface HabitSnapshot {
 }
 
 export type ChangeResult =
-  | { ok: true; data: HabitData }
-  | { ok: false; reason: "invalid-input" | "not-scheduled" };
+  { ok: true; data: HabitData } | { ok: false; reason: "invalid-input" | "not-scheduled" };
 
 export type CommitResult =
   | { ok: true; snapshot: HabitSnapshot }
   | {
       ok: false;
-      reason: "unavailable" | "recovery-required" | "conflict" | "invalid-data" | "quota" | "unknown";
+      reason:
+        "unavailable" | "recovery-required" | "conflict" | "invalid-data" | "quota" | "unknown";
     };
 
 // Snapshot dibaca sekali. Loader memeriksa snapshot yang sama, bukan pembacaan kedua.
@@ -40,11 +40,7 @@ export function readHabitSnapshot(storage: StorageLike | null): HabitSnapshot {
   }
 }
 
-export function recordHabitEntry(
-  data: HabitData,
-  entry: HabitEntry,
-  today: string,
-): ChangeResult {
+export function recordHabitEntry(data: HabitData, entry: HabitEntry, today: string): ChangeResult {
   if (!isDateKey(today) || !isDateKey(entry.date) || entry.date > today) {
     return { ok: false, reason: "invalid-input" };
   }
@@ -63,8 +59,9 @@ export function recordHabitEntry(
     data: {
       ...data,
       entries: [
-        ...data.entries.filter((item) =>
-          !(item.habitId === entry.habitId && item.date === entry.date)),
+        ...data.entries.filter(
+          (item) => !(item.habitId === entry.habitId && item.date === entry.date),
+        ),
         normalized,
       ],
     },
@@ -89,8 +86,10 @@ function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
   if (value !== null && typeof value === "object") {
     const record = value as Record<string, unknown>;
-    return `{${Object.keys(record).sort().map((key) =>
-      `${JSON.stringify(key)}:${canonical(record[key])}`).join(",")}}`;
+    return `{${Object.keys(record)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonical(record[key])}`)
+      .join(",")}}`;
   }
   return JSON.stringify(value) ?? "undefined";
 }
@@ -105,8 +104,11 @@ export function commitHabitData(
   if (!storage || expected.loaded.status === "unavailable") {
     return { ok: false, reason: "unavailable" };
   }
-  if (!isSaveSafe(expected.loaded) ||
-      expected.loaded.status === "recovered" || expected.loaded.status === "unreadable") {
+  if (
+    !isSaveSafe(expected.loaded) ||
+    expected.loaded.status === "recovered" ||
+    expected.loaded.status === "unreadable"
+  ) {
     return { ok: false, reason: "recovery-required" };
   }
   let raw: string;
@@ -115,7 +117,9 @@ export function commitHabitData(
     raw = JSON.stringify(next);
     validated = loadHabitData({
       getItem: () => raw,
-      setItem: () => { throw new Error("Validasi tidak menulis cadangan"); },
+      setItem: () => {
+        throw new Error("Validasi tidak menulis cadangan");
+      },
     });
     if (validated.status !== "ok" || canonical(validated.data) !== canonical(next)) {
       return { ok: false, reason: "invalid-data" };

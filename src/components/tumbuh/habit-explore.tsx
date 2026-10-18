@@ -1,64 +1,566 @@
-import { useState, type ReactNode } from 'react';
-import { Link } from '@tanstack/react-router';
-import { useHabitReadView } from '@/hooks/use-habit-read-view';
-import { addDays, isDateKey } from '@/lib/habit-metrics';
-import { historyRows, monthCells, periodReport, shiftMonth, stateLabels, type HistoryRow, type HistoryState } from '@/lib/habit-explore';
-import { describeHabitTarget, habitAtDate, type HabitData, type HabitEntry } from '@/lib/habit-model';
-import './habit-explore.css';
+import { useState, type ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
+import { useHabitReadView } from "@/hooks/use-habit-read-view";
+import { addDays, isDateKey } from "@/lib/habit-metrics";
+import {
+  historyRows,
+  monthCells,
+  periodReport,
+  shiftMonth,
+  stateLabels,
+  type HistoryRow,
+  type HistoryState,
+} from "@/lib/habit-explore";
+import {
+  describeHabitTarget,
+  habitAtDate,
+  type HabitData,
+  type HabitEntry,
+} from "@/lib/habit-model";
+import "./habit-explore.css";
 
-const number = (value: number | null) => value === null ? '—' : value.toLocaleString('id-ID', { maximumFractionDigits: 1 });
+const number = (value: number | null) =>
+  value === null ? "—" : value.toLocaleString("id-ID", { maximumFractionDigits: 1 });
 function ReadGate({ children }: { children: (data: HabitData, today: string) => ReactNode }) {
   const { view, refresh } = useHabitReadView();
   if (!view) return <p role="status">Membaca data kebiasaan…</p>;
-  if (view.loaded.status !== 'ok' && view.loaded.status !== 'empty') return <section className="t-panel"><h1>Data belum dapat ditampilkan</h1><p role="alert">{view.loaded.status === 'unavailable' ? 'Penyimpanan tidak tersedia.' : 'Data membutuhkan pemeriksaan; hasil parsial tidak ditampilkan sebagai data lengkap.'} Tampilan ini tidak menulis, menghapus, atau mencadangkan data asli.</p><button type="button" className="t-action" onClick={refresh}>Coba baca ulang</button></section>;
-  if (view.loaded.data.habits.length === 0 && view.loaded.data.entries.length === 0) return <section className="t-panel"><h1>Belum ada data habit v2</h1><p>Mulai dari satu kebiasaan. Rutinitas lama v1 tetap terpisah di halaman Harian.</p><Link className="t-action" to="/habit" search={{}}>Buka Harian</Link></section>;
+  if (view.loaded.status !== "ok" && view.loaded.status !== "empty")
+    return (
+      <section className="t-panel">
+        <h1>Data belum dapat ditampilkan</h1>
+        <p role="alert">
+          {view.loaded.status === "unavailable"
+            ? "Penyimpanan tidak tersedia."
+            : "Data membutuhkan pemeriksaan; hasil parsial tidak ditampilkan sebagai data lengkap."}{" "}
+          Tampilan ini tidak menulis, menghapus, atau mencadangkan data asli.
+        </p>
+        <button type="button" className="t-action" onClick={refresh}>
+          Coba baca ulang
+        </button>
+      </section>
+    );
+  if (view.loaded.data.habits.length === 0 && view.loaded.data.entries.length === 0)
+    return (
+      <section className="t-panel">
+        <h1>Belum ada data habit v2</h1>
+        <p>Mulai dari satu kebiasaan. Rutinitas lama v1 tetap terpisah di halaman Harian.</p>
+        <Link className="t-action" to="/habit" search={{}}>
+          Buka Harian
+        </Link>
+      </section>
+    );
   return <>{children(view.loaded.data, view.date)}</>;
 }
 function PersonalNote({ entry }: { entry: HabitEntry }) {
   const [open, setOpen] = useState(false);
-  return <details onToggle={(event) => setOpen(event.currentTarget.open)}><summary>Catatan pribadi</summary>{open && <div className="hx-private">{entry.detail?.kind === 'journal' && <p>{entry.detail.text}</p>}{entry.detail?.kind === 'mood' && <><p>Suasana hati: {entry.detail.mood.replaceAll('-', ' ')}</p>{entry.detail.context && <p>{entry.detail.context}</p>}</>}{entry.detail?.kind === 'time' && <p>{entry.detail.event === 'wake' ? 'Bangun' : 'Mulai tidur'}: {entry.detail.time}</p>}{entry.note && <p>{entry.note}</p>}{entry.reflection && <p>Refleksi: {entry.reflection.replaceAll('-', ' ')}</p>}{!entry.detail && !entry.note && !entry.reflection && <p>Tidak ada catatan pribadi.</p>}</div>}</details>;
+  return (
+    <details onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary>Catatan pribadi</summary>
+      {open && (
+        <div className="hx-private">
+          {entry.detail?.kind === "journal" && <p>{entry.detail.text}</p>}
+          {entry.detail?.kind === "mood" && (
+            <>
+              <p>Suasana hati: {entry.detail.mood.replaceAll("-", " ")}</p>
+              {entry.detail.context && <p>{entry.detail.context}</p>}
+            </>
+          )}
+          {entry.detail?.kind === "time" && (
+            <p>
+              {entry.detail.event === "wake" ? "Bangun" : "Mulai tidur"}: {entry.detail.time}
+            </p>
+          )}
+          {entry.note && <p>{entry.note}</p>}
+          {entry.reflection && <p>Refleksi: {entry.reflection.replaceAll("-", " ")}</p>}
+          {!entry.detail && !entry.note && !entry.reflection && <p>Tidak ada catatan pribadi.</p>}
+        </div>
+      )}
+    </details>
+  );
 }
-function HabitSelect({ data, value, onChange }: { data: HabitData; value: string; onChange: (value: string) => void }) {
-  return <label>Kebiasaan<select className="text-input hx-control" value={value} onChange={(event) => onChange(event.target.value)}><option value="all">Semua kebiasaan</option>{data.habits.map((habit) => <option key={habit.id} value={habit.id}>{habit.name}</option>)}</select></label>;
+function HabitSelect({
+  data,
+  value,
+  onChange,
+}: {
+  data: HabitData;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label>
+      Kebiasaan
+      <select
+        className="text-input hx-control"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        <option value="all">Semua kebiasaan</option>
+        {data.habits.map((habit) => (
+          <option key={habit.id} value={habit.id}>
+            {habit.name}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
 }
-export function HabitHistory() { return <ReadGate>{(data, today) => <HistoryBody data={data} today={today} />}</ReadGate>; }
+export function HabitHistory() {
+  return <ReadGate>{(data, today) => <HistoryBody data={data} today={today} />}</ReadGate>;
+}
 function HistoryBody({ data, today }: { data: HabitData; today: string }) {
-  const [month, setMonth] = useState(today.slice(0, 7)); const [selected, setSelected] = useState(today);
-  const defaults = () => ({ from: addDays(today, -29), to: today, habitId: 'all', state: 'all' as HistoryState | 'all' });
-  const [filters, setFilters] = useState(defaults); const [page, setPage] = useState(0);
-  const change = (patch: Partial<typeof filters>) => { setFilters((previous) => ({ ...previous, ...patch })); setPage(0); };
-  let rows: HistoryRow[] = []; let error = '';
-  if (!isDateKey(filters.from) || !isDateKey(filters.to) || filters.to > today || filters.from > filters.to) error = 'Pilih rentang tanggal yang valid sampai hari ini.';
-  else try { rows = historyRows(data, filters.from, filters.to, filters.habitId, filters.state); } catch { error = 'Maksimal 366 hari per pencarian. Persempit rentang untuk melihat riwayat lainnya.'; }
-  const pages = Math.max(1, Math.ceil(rows.length / 25)); const current = Math.min(page, pages - 1);
-  const previous = shiftMonth(month, -1); const next = shiftMonth(month, 1);
-  return <section className="t-panel hx-view"><h1>Kalender & Riwayat</h1><p>Lihat perjalananmu tanpa mengubah catatan. Baris belum dicatat berasal dari jadwal, bukan rekaman pelaksanaan baru.</p>
-    <div className="t-row"><button className="t-action" type="button" disabled={!previous} onClick={() => previous && setMonth(previous)}>Bulan sebelumnya</button><label>Bulan kalender<input type="month" className="text-input hx-control" value={month} max={today.slice(0, 7)} onChange={(event) => { if (isDateKey(`${event.target.value}-01`) && event.target.value <= today.slice(0, 7)) setMonth(event.target.value); }} /></label><button className="t-action" type="button" disabled={!next || next > today.slice(0, 7)} onClick={() => next && setMonth(next)}>Bulan berikutnya</button></div>
-    <p>Klik tanggal untuk membatasi daftar ke hari itu. Kalender mengikuti filter kebiasaan; filter status hanya berlaku pada daftar. Geser kalender bila layar sempit.</p>
-    <div className="hx-calendar-wrap" role="region" aria-label="Kalender yang dapat digulir" tabIndex={0}><div className="hx-calendar">{['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].map((day) => <span className="hx-weekday" key={day}>{day}</span>)}{monthCells(month).map((key, index) => {
-      if (!key) return <span key={`blank-${index}`} aria-hidden="true" />;
-      const future = key > today; const dayRows = future ? [] : historyRows(data, key, key, filters.habitId);
-      const scheduled = dayRows.filter((row) => row.scheduled); const done = scheduled.filter((row) => row.state === 'done').length;
-      const symbol = future ? '⋯' : scheduled.length === 0 ? '—' : done === scheduled.length ? '✓' : done > 0 || scheduled.some((row) => row.state === 'partial') ? '◐' : '○';
-      return <button key={key} type="button" className="hx-day" aria-pressed={selected === key} disabled={future} aria-label={`Lihat tanggal ${key}: ${future ? 'belum terjadi' : `${done} selesai dari ${scheduled.length} terjadwal, ${dayRows.filter((row) => row.entry).length} catatan tersimpan`}`} onClick={() => { setSelected(key); change({ from: key, to: key }); }}><strong>{Number(key.slice(-2))}</strong><span>{symbol} {scheduled.length ? `${done}/${scheduled.length}` : ''}</span></button>;
-    })}</div></div><p>✓ Semua terjadwal selesai · ◐ Ada progres · ○ Ada jadwal, belum semua selesai · — Tidak ada jadwal · ⋯ Belum terjadi. Catatan di luar jadwal tetap dapat dilihat dalam daftar.</p>
-    <div className="hx-filters"><HabitSelect data={data} value={filters.habitId} onChange={(habitId) => change({ habitId })} /><label>Status<select className="text-input hx-control" value={filters.state} onChange={(event) => change({ state: event.target.value as HistoryState | 'all' })}><option value="all">Semua status</option>{(Object.keys(stateLabels) as HistoryState[]).map((state) => <option key={state} value={state}>{stateLabels[state]}</option>)}</select></label><label>Dari tanggal<input className="text-input hx-control" type="date" value={filters.from} max={today} onChange={(event) => change({ from: event.target.value })} /></label><label>Sampai tanggal<input className="text-input hx-control" type="date" value={filters.to} max={today} onChange={(event) => change({ to: event.target.value })} /></label></div>
-    <div className="t-row"><button type="button" className="t-action" onClick={() => { setFilters(defaults()); setMonth(today.slice(0, 7)); setSelected(today); setPage(0); }}>Hapus filter</button><Link className="t-action" to="/habit" search={{}}>Buka Harian untuk koreksi</Link></div><p>Untuk koreksi, buka Harian lalu pilih tanggal catatan. Target efektif pada tanggal tersebut tetap digunakan. Catatan pribadi tidak dimuat ke tampilan sampai detail dibuka; berhati-hatilah pada perangkat bersama.</p>
-    {error ? <p role="alert">{error}</p> : <><p role="status">{rows.length} baris cocok · {filters.from} sampai {filters.to}.</p>{rows.length === 0 && <p>Tidak ada jadwal atau catatan yang cocok dengan filter ini. Ini bukan kegagalan pemuatan.</p>}{rows.slice(current * 25, (current + 1) * 25).map((row) => <article key={`${row.habitId}|${row.date}`} className="hx-entry"><h2>{row.name}</h2><p><time dateTime={row.date}>{row.date}</time> · {stateLabels[row.state]}</p><p>Target saat itu: {row.habit ? describeHabitTarget(habitAtDate(row.habit, row.date)) : 'Tidak tersedia; data kebiasaan tidak ditemukan.'}</p>{row.entry?.value !== null && row.entry?.value !== undefined && <p>Nilai tercatat: {number(row.entry.value)} {row.habit ? habitAtDate(row.habit, row.date).unit : ''}</p>}{!row.scheduled && <p>Catatan ini tidak dihitung dalam penyelesaian terjadwal.</p>}{row.entry && <PersonalNote entry={row.entry} />}</article>)}<div className="t-row"><button type="button" className="t-action" disabled={current === 0} onClick={() => setPage(current - 1)}>Halaman sebelumnya</button><span>Halaman {current + 1} dari {pages}</span><button type="button" className="t-action" disabled={current + 1 >= pages} onClick={() => setPage(current + 1)}>Halaman berikutnya</button></div></>}
-  </section>;
+  const [month, setMonth] = useState(today.slice(0, 7));
+  const [selected, setSelected] = useState(today);
+  const defaults = () => ({
+    from: addDays(today, -29),
+    to: today,
+    habitId: "all",
+    state: "all" as HistoryState | "all",
+  });
+  const [filters, setFilters] = useState(defaults);
+  const [page, setPage] = useState(0);
+  const change = (patch: Partial<typeof filters>) => {
+    setFilters((previous) => ({ ...previous, ...patch }));
+    setPage(0);
+  };
+  let rows: HistoryRow[] = [];
+  let error = "";
+  if (
+    !isDateKey(filters.from) ||
+    !isDateKey(filters.to) ||
+    filters.to > today ||
+    filters.from > filters.to
+  )
+    error = "Pilih rentang tanggal yang valid sampai hari ini.";
+  else
+    try {
+      rows = historyRows(data, filters.from, filters.to, filters.habitId, filters.state);
+    } catch {
+      error = "Maksimal 366 hari per pencarian. Persempit rentang untuk melihat riwayat lainnya.";
+    }
+  const pages = Math.max(1, Math.ceil(rows.length / 25));
+  const current = Math.min(page, pages - 1);
+  const previous = shiftMonth(month, -1);
+  const next = shiftMonth(month, 1);
+  return (
+    <section className="t-panel hx-view">
+      <h1>Kalender & Riwayat</h1>
+      <p>
+        Lihat perjalananmu tanpa mengubah catatan. Baris belum dicatat berasal dari jadwal, bukan
+        rekaman pelaksanaan baru.
+      </p>
+      <div className="t-row">
+        <button
+          className="t-action"
+          type="button"
+          disabled={!previous}
+          onClick={() => previous && setMonth(previous)}
+        >
+          Bulan sebelumnya
+        </button>
+        <label>
+          Bulan kalender
+          <input
+            type="month"
+            className="text-input hx-control"
+            value={month}
+            max={today.slice(0, 7)}
+            onChange={(event) => {
+              if (isDateKey(`${event.target.value}-01`) && event.target.value <= today.slice(0, 7))
+                setMonth(event.target.value);
+            }}
+          />
+        </label>
+        <button
+          className="t-action"
+          type="button"
+          disabled={!next || next > today.slice(0, 7)}
+          onClick={() => next && setMonth(next)}
+        >
+          Bulan berikutnya
+        </button>
+      </div>
+      <p>
+        Klik tanggal untuk membatasi daftar ke hari itu. Kalender mengikuti filter kebiasaan; filter
+        status hanya berlaku pada daftar. Geser kalender bila layar sempit.
+      </p>
+      <div
+        className="hx-calendar-wrap"
+        role="region"
+        aria-label="Kalender yang dapat digulir"
+        tabIndex={0}
+      >
+        <div className="hx-calendar">
+          {["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"].map((day) => (
+            <span className="hx-weekday" key={day}>
+              {day}
+            </span>
+          ))}
+          {monthCells(month).map((key, index) => {
+            if (!key) return <span key={`blank-${index}`} aria-hidden="true" />;
+            const future = key > today;
+            const dayRows = future ? [] : historyRows(data, key, key, filters.habitId);
+            const scheduled = dayRows.filter((row) => row.scheduled);
+            const done = scheduled.filter((row) => row.state === "done").length;
+            const symbol = future
+              ? "⋯"
+              : scheduled.length === 0
+                ? "—"
+                : done === scheduled.length
+                  ? "✓"
+                  : done > 0 || scheduled.some((row) => row.state === "partial")
+                    ? "◐"
+                    : "○";
+            return (
+              <button
+                key={key}
+                type="button"
+                className="hx-day"
+                aria-pressed={selected === key}
+                disabled={future}
+                aria-label={`Lihat tanggal ${key}: ${future ? "belum terjadi" : `${done} selesai dari ${scheduled.length} terjadwal, ${dayRows.filter((row) => row.entry).length} catatan tersimpan`}`}
+                onClick={() => {
+                  setSelected(key);
+                  change({ from: key, to: key });
+                }}
+              >
+                <strong>{Number(key.slice(-2))}</strong>
+                <span>
+                  {symbol} {scheduled.length ? `${done}/${scheduled.length}` : ""}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <p>
+        ✓ Semua terjadwal selesai · ◐ Ada progres · ○ Ada jadwal, belum semua selesai · — Tidak ada
+        jadwal · ⋯ Belum terjadi. Catatan di luar jadwal tetap dapat dilihat dalam daftar.
+      </p>
+      <div className="hx-filters">
+        <HabitSelect
+          data={data}
+          value={filters.habitId}
+          onChange={(habitId) => change({ habitId })}
+        />
+        <label>
+          Status
+          <select
+            className="text-input hx-control"
+            value={filters.state}
+            onChange={(event) => change({ state: event.target.value as HistoryState | "all" })}
+          >
+            <option value="all">Semua status</option>
+            {(Object.keys(stateLabels) as HistoryState[]).map((state) => (
+              <option key={state} value={state}>
+                {stateLabels[state]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Dari tanggal
+          <input
+            className="text-input hx-control"
+            type="date"
+            value={filters.from}
+            max={today}
+            onChange={(event) => change({ from: event.target.value })}
+          />
+        </label>
+        <label>
+          Sampai tanggal
+          <input
+            className="text-input hx-control"
+            type="date"
+            value={filters.to}
+            max={today}
+            onChange={(event) => change({ to: event.target.value })}
+          />
+        </label>
+      </div>
+      <div className="t-row">
+        <button
+          type="button"
+          className="t-action"
+          onClick={() => {
+            setFilters(defaults());
+            setMonth(today.slice(0, 7));
+            setSelected(today);
+            setPage(0);
+          }}
+        >
+          Hapus filter
+        </button>
+        <Link className="t-action" to="/habit" search={{}}>
+          Buka Harian untuk koreksi
+        </Link>
+      </div>
+      <p>
+        Untuk koreksi, buka Harian lalu pilih tanggal catatan. Target efektif pada tanggal tersebut
+        tetap digunakan. Catatan pribadi tidak dimuat ke tampilan sampai detail dibuka;
+        berhati-hatilah pada perangkat bersama.
+      </p>
+      {error ? (
+        <p role="alert">{error}</p>
+      ) : (
+        <>
+          <p role="status">
+            {rows.length} baris cocok · {filters.from} sampai {filters.to}.
+          </p>
+          {rows.length === 0 && (
+            <p>
+              Tidak ada jadwal atau catatan yang cocok dengan filter ini. Ini bukan kegagalan
+              pemuatan.
+            </p>
+          )}
+          {rows.slice(current * 25, (current + 1) * 25).map((row) => (
+            <article key={`${row.habitId}|${row.date}`} className="hx-entry">
+              <h2>{row.name}</h2>
+              <p>
+                <time dateTime={row.date}>{row.date}</time> · {stateLabels[row.state]}
+              </p>
+              <p>
+                Target saat itu:{" "}
+                {row.habit
+                  ? describeHabitTarget(habitAtDate(row.habit, row.date))
+                  : "Tidak tersedia; data kebiasaan tidak ditemukan."}
+              </p>
+              {row.entry?.value !== null && row.entry?.value !== undefined && (
+                <p>
+                  Nilai tercatat: {number(row.entry.value)}{" "}
+                  {row.habit ? habitAtDate(row.habit, row.date).unit : ""}
+                </p>
+              )}
+              {!row.scheduled && <p>Catatan ini tidak dihitung dalam penyelesaian terjadwal.</p>}
+              {row.entry && <PersonalNote entry={row.entry} />}
+            </article>
+          ))}
+          <div className="t-row">
+            <button
+              type="button"
+              className="t-action"
+              disabled={current === 0}
+              onClick={() => setPage(current - 1)}
+            >
+              Halaman sebelumnya
+            </button>
+            <span>
+              Halaman {current + 1} dari {pages}
+            </span>
+            <button
+              type="button"
+              className="t-action"
+              disabled={current + 1 >= pages}
+              onClick={() => setPage(current + 1)}
+            >
+              Halaman berikutnya
+            </button>
+          </div>
+        </>
+      )}
+    </section>
+  );
 }
-export function HabitStatistics() { return <ReadGate>{(data, today) => <StatisticsBody data={data} today={today} />}</ReadGate>; }
+export function HabitStatistics() {
+  return <ReadGate>{(data, today) => <StatisticsBody data={data} today={today} />}</ReadGate>;
+}
 function StatisticsBody({ data, today }: { data: HabitData; today: string }) {
-  const [end, setEnd] = useState(today); const [length, setLength] = useState<7 | 30>(7); const [habitId, setHabitId] = useState('all');
-  const report = periodReport(data, end, length, habitId); const measured = report.perHabit.filter((row) => row.measurement);
-  return <section className="t-panel hx-view"><h1>Statistik kebiasaan</h1><p>Ringkasan deskriptif dari workspace v2, tanpa skor pertumbuhan, badge, diagnosis, atau kesimpulan sebab-akibat baru.</p>
-    <div className="hx-filters"><HabitSelect data={data} value={habitId} onChange={setHabitId} /><label>Akhir periode statistik<input className="text-input hx-control" type="date" value={end} max={today} onChange={(event) => { if (isDateKey(event.target.value) && event.target.value <= today) setEnd(event.target.value); }} /></label></div><div className="t-period" role="group" aria-label="Rentang statistik">{([7, 30] as const).map((value) => <button className="t-action" type="button" key={value} aria-pressed={length === value} onClick={() => setLength(value)}>{value} hari</button>)}</div>
-    <h2>Penyelesaian dan konsistensi pelaksanaan</h2><p>{report.from} sampai {report.end} · {report.trend.done} dari {report.trend.scheduled} kesempatan terjadwal selesai · {report.trend.percent === null ? 'Tidak ada jadwal; bukan kegagalan.' : `${report.trend.percent}%.`}</p><p>Konsistensi di sini memakai rasio penyelesaian terjadwal yang sama, bukan skor tambahan. Hari belum dicatat tetap memiliki label sendiri.</p>
-    <dl className="t-counts">{(Object.keys(report.counts) as Array<keyof typeof report.counts>).map((state) => <div key={state}><dt>{stateLabels[state]}</dt><dd>{report.counts[state]}</dd></div>)}</dl>
-    <div className="t-trend" aria-hidden="true">{report.trend.days.map((day) => <div key={day.date}><i style={{ height: `${day.percent ?? 0}%` }} /></div>)}</div><details><summary>Tabel rincian tren</summary><div className="t-table-wrap" role="region" aria-label="Tabel tren statistik yang dapat digulir" tabIndex={0}><table><caption>Tren pelaksanaan {length} hari</caption><thead><tr><th scope="col">Tanggal</th><th scope="col">Selesai</th><th scope="col">Terjadwal</th><th scope="col">Penyelesaian</th></tr></thead><tbody>{report.trend.days.map((day) => <tr key={day.date}><th scope="row">{day.date}</th><td>{day.done}</td><td>{day.scheduled}</td><td>{day.percent === null ? '— Tidak ada jadwal' : `${day.percent}%`}</td></tr>)}</tbody></table></div></details>
-    <div className="t-table-wrap" role="region" aria-label="Penyelesaian per kebiasaan yang dapat digulir" tabIndex={0}><table><caption>Penyelesaian per kebiasaan</caption><thead><tr><th scope="col">Kebiasaan</th><th scope="col">Selesai / terjadwal</th><th scope="col">Penyelesaian</th></tr></thead><tbody>{report.perHabit.map((row) => <tr key={row.habit.id}><th scope="row">{row.habit.name}</th><td>{row.progress.done}/{row.progress.scheduled}</td><td>{row.progress.percent === null ? '—' : `${row.progress.percent}%`}</td></tr>)}</tbody></table></div>
-    <h2>Akumulasi target harian vs realisasi angka</h2><p>Target dijumlahkan dari jadwal dan target efektif setiap tanggal, bukan target hasil mingguan/bulanan baru. Aktual hanya menjumlahkan nilai yang tercatat. Cakupan menunjukkan berapa hari memiliki nilai angka. Capaian ini tidak digabung dengan penyelesaian habit atau dirata-ratakan lintas kebiasaan.</p>
-    {measured.length === 0 ? <p>Tidak ada kebiasaan bertarget angka dalam pilihan ini.</p> : <div className="t-table-wrap" role="region" aria-label="Capaian angka yang dapat digulir" tabIndex={0}><table><caption>Capaian target angka per kebiasaan</caption><thead><tr><th scope="col">Kebiasaan</th><th scope="col">Jumlah target harian</th><th scope="col">Aktual tercatat</th><th scope="col">Cakupan</th><th scope="col">Capaian</th></tr></thead><tbody>{measured.map(({ habit, measurement: value }) => value && <tr key={habit.id}><th scope="row">{habit.name}</th><td>{number(value.planned)} {value.unit}</td><td>{number(value.actual)} {value.unit}</td><td>{value.recorded}/{value.scheduled} hari</td><td>{value.attainment === null ? '—' : `${number(value.attainment)}%`}</td></tr>)}</tbody></table></div>}
-    <p>— berarti tidak ada jadwal, nilai belum dicatat, atau target/satuan tidak lengkap sesuai kolomnya. Nilai dari satuan berbeda tidak dijumlahkan. Waktu tidur, jurnal, dan emosi tidak dirata-ratakan menjadi skor.</p>{report.ignored > 0 && <p>{report.ignored} catatan di luar jadwal atau tanpa kebiasaan dikecualikan dari statistik terjadwal, tetapi tetap tersedia di Riwayat.</p>}<p>Ringkasan ini belum menyimpulkan pola atau manfaat kebiasaan. Tinjau catatan dan konteksmu sebelum menarik kesimpulan.</p><Link className="t-action" to="/habit" search={{ view: 'riwayat' }}>Tinjau riwayat</Link>
-  </section>;
+  const [end, setEnd] = useState(today);
+  const [length, setLength] = useState<7 | 30>(7);
+  const [habitId, setHabitId] = useState("all");
+  const report = periodReport(data, end, length, habitId);
+  const measured = report.perHabit.filter((row) => row.measurement);
+  return (
+    <section className="t-panel hx-view">
+      <h1>Statistik kebiasaan</h1>
+      <p>
+        Ringkasan deskriptif dari workspace v2, tanpa skor pertumbuhan, badge, diagnosis, atau
+        kesimpulan sebab-akibat baru.
+      </p>
+      <div className="hx-filters">
+        <HabitSelect data={data} value={habitId} onChange={setHabitId} />
+        <label>
+          Akhir periode statistik
+          <input
+            className="text-input hx-control"
+            type="date"
+            value={end}
+            max={today}
+            onChange={(event) => {
+              if (isDateKey(event.target.value) && event.target.value <= today)
+                setEnd(event.target.value);
+            }}
+          />
+        </label>
+      </div>
+      <div className="t-period" role="group" aria-label="Rentang statistik">
+        {([7, 30] as const).map((value) => (
+          <button
+            className="t-action"
+            type="button"
+            key={value}
+            aria-pressed={length === value}
+            onClick={() => setLength(value)}
+          >
+            {value} hari
+          </button>
+        ))}
+      </div>
+      <h2>Penyelesaian dan konsistensi pelaksanaan</h2>
+      <p>
+        {report.from} sampai {report.end} · {report.trend.done} dari {report.trend.scheduled}{" "}
+        kesempatan terjadwal selesai ·{" "}
+        {report.trend.percent === null
+          ? "Tidak ada jadwal; bukan kegagalan."
+          : `${report.trend.percent}%.`}
+      </p>
+      <p>
+        Konsistensi di sini memakai rasio penyelesaian terjadwal yang sama, bukan skor tambahan.
+        Hari belum dicatat tetap memiliki label sendiri.
+      </p>
+      <dl className="t-counts">
+        {(Object.keys(report.counts) as Array<keyof typeof report.counts>).map((state) => (
+          <div key={state}>
+            <dt>{stateLabels[state]}</dt>
+            <dd>{report.counts[state]}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="t-trend" aria-hidden="true">
+        {report.trend.days.map((day) => (
+          <div key={day.date}>
+            <i style={{ height: `${day.percent ?? 0}%` }} />
+          </div>
+        ))}
+      </div>
+      <details>
+        <summary>Tabel rincian tren</summary>
+        <div
+          className="t-table-wrap"
+          role="region"
+          aria-label="Tabel tren statistik yang dapat digulir"
+          tabIndex={0}
+        >
+          <table>
+            <caption>Tren pelaksanaan {length} hari</caption>
+            <thead>
+              <tr>
+                <th scope="col">Tanggal</th>
+                <th scope="col">Selesai</th>
+                <th scope="col">Terjadwal</th>
+                <th scope="col">Penyelesaian</th>
+              </tr>
+            </thead>
+            <tbody>
+              {report.trend.days.map((day) => (
+                <tr key={day.date}>
+                  <th scope="row">{day.date}</th>
+                  <td>{day.done}</td>
+                  <td>{day.scheduled}</td>
+                  <td>{day.percent === null ? "— Tidak ada jadwal" : `${day.percent}%`}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
+      <div
+        className="t-table-wrap"
+        role="region"
+        aria-label="Penyelesaian per kebiasaan yang dapat digulir"
+        tabIndex={0}
+      >
+        <table>
+          <caption>Penyelesaian per kebiasaan</caption>
+          <thead>
+            <tr>
+              <th scope="col">Kebiasaan</th>
+              <th scope="col">Selesai / terjadwal</th>
+              <th scope="col">Penyelesaian</th>
+            </tr>
+          </thead>
+          <tbody>
+            {report.perHabit.map((row) => (
+              <tr key={row.habit.id}>
+                <th scope="row">{row.habit.name}</th>
+                <td>
+                  {row.progress.done}/{row.progress.scheduled}
+                </td>
+                <td>{row.progress.percent === null ? "—" : `${row.progress.percent}%`}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <h2>Akumulasi target harian vs realisasi angka</h2>
+      <p>
+        Target dijumlahkan dari jadwal dan target efektif setiap tanggal, bukan target hasil
+        mingguan/bulanan baru. Aktual hanya menjumlahkan nilai yang tercatat. Cakupan menunjukkan
+        berapa hari memiliki nilai angka. Capaian ini tidak digabung dengan penyelesaian habit atau
+        dirata-ratakan lintas kebiasaan.
+      </p>
+      {measured.length === 0 ? (
+        <p>Tidak ada kebiasaan bertarget angka dalam pilihan ini.</p>
+      ) : (
+        <div
+          className="t-table-wrap"
+          role="region"
+          aria-label="Capaian angka yang dapat digulir"
+          tabIndex={0}
+        >
+          <table>
+            <caption>Capaian target angka per kebiasaan</caption>
+            <thead>
+              <tr>
+                <th scope="col">Kebiasaan</th>
+                <th scope="col">Jumlah target harian</th>
+                <th scope="col">Aktual tercatat</th>
+                <th scope="col">Cakupan</th>
+                <th scope="col">Capaian</th>
+              </tr>
+            </thead>
+            <tbody>
+              {measured.map(
+                ({ habit, measurement: value }) =>
+                  value && (
+                    <tr key={habit.id}>
+                      <th scope="row">{habit.name}</th>
+                      <td>
+                        {number(value.planned)} {value.unit}
+                      </td>
+                      <td>
+                        {number(value.actual)} {value.unit}
+                      </td>
+                      <td>
+                        {value.recorded}/{value.scheduled} hari
+                      </td>
+                      <td>{value.attainment === null ? "—" : `${number(value.attainment)}%`}</td>
+                    </tr>
+                  ),
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p>
+        — berarti tidak ada jadwal, nilai belum dicatat, atau target/satuan tidak lengkap sesuai
+        kolomnya. Nilai dari satuan berbeda tidak dijumlahkan. Waktu tidur, jurnal, dan emosi tidak
+        dirata-ratakan menjadi skor.
+      </p>
+      {report.ignored > 0 && (
+        <p>
+          {report.ignored} catatan di luar jadwal atau tanpa kebiasaan dikecualikan dari statistik
+          terjadwal, tetapi tetap tersedia di Riwayat.
+        </p>
+      )}
+      <p>
+        Ringkasan ini belum menyimpulkan pola atau manfaat kebiasaan. Tinjau catatan dan konteksmu
+        sebelum menarik kesimpulan.
+      </p>
+      <Link className="t-action" to="/habit" search={{ view: "riwayat" }}>
+        Tinjau riwayat
+      </Link>
+    </section>
+  );
 }
