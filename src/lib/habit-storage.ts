@@ -1,6 +1,6 @@
 import { habitCatalog, habitCategories } from './habit-catalog';
 import { isDateKey } from './habit-metrics';
-import { emptyHabitData, isEntryDetail, isSleepTarget, type Habit, type HabitData, type HabitEntry, type Schedule, type ScheduleEntry } from './habit-model';
+import { emptyHabitData, isEntryDetail, isSleepTarget, parseTargetHistory, type Habit, type HabitData, type HabitEntry, type Schedule, type ScheduleEntry } from './habit-model';
 
 export const HABIT_STORAGE_KEY = 'tumbuh-habit-v2';
 export const LEGACY_HABIT_STORAGE_KEY = 'tumbuh-habit-v1';
@@ -38,7 +38,7 @@ function parseHabit(v: unknown): Habit | null {
   const sleepTarget = v['sleepTarget'];
   if (sleepTarget !== undefined && (!isSleepTarget(sleepTarget) || v['templateId'] !== 'consistent-sleep')) return null;
   const target = v['target']; const reminder = v['reminderTime'];
-  return {
+  const habit: Habit = {
     id, templateId: text(v['templateId']), name, categoryId: category.id,
     purpose: typeof v['purpose'] === 'string' ? v['purpose'] : '', unit: text(v['unit']),
     target: typeof target === 'number' && Number.isFinite(target) && target > 0 ? target : null, status,
@@ -47,6 +47,12 @@ function parseHabit(v: unknown): Habit | null {
     createdAt: text(v['createdAt']) ?? '', updatedAt: text(v['updatedAt']) ?? '',
     ...(isSleepTarget(sleepTarget) ? { sleepTarget } : {}),
   };
+  if (v['targetHistory'] !== undefined) {
+    const revisions = parseTargetHistory(v['targetHistory'], habit);
+    if (!revisions) return null;
+    habit.targetHistory = revisions;
+  }
+  return habit;
 }
 function parseEntry(v: unknown): HabitEntry | null {
   if (!isRecord(v)) return null;
