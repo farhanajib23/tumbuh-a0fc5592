@@ -1,0 +1,69 @@
+name: TUMBUH - Perbaikan format 11 kebiasaan
+
+on:
+  push:
+    branches: [feature/eleven-daily-habits]
+    paths: [.github/workflows/format-eleven-habits.yml]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: format-eleven-habits
+  cancel-in-progress: false
+
+jobs:
+  format-and-verify:
+    if: github.repository == 'farhanajib23/tumbuh-a0fc5592' && github.ref == 'refs/heads/feature/eleven-daily-habits'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Instalasi terkunci
+        run: bun install --frozen-lockfile
+      - name: Format source mengikuti konfigurasi proyek
+        run: bun run prettier --write src scripts
+      - name: Simpan hanya perubahan formatting pada branch fitur
+        run: |
+          git add -- src scripts
+          if ! git diff --cached --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'style(habit): apply repository Prettier configuration'
+            git push origin HEAD:refs/heads/feature/eleven-daily-habits
+          fi
+          {
+            echo '## Formatting selesai'
+            echo "Commit pemicu: $GITHUB_SHA"
+            echo "Commit source yang diperiksa: $(git rev-parse HEAD)"
+            echo 'Commit bot tidak diandalkan untuk memicu workflow lain; pemeriksaan dijalankan di workflow ini.'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Periksa source setelah formatting
+        env:
+          TUMBUH_PAGES: 'true'
+          VITE_BUILD_BRANCH: feature/eleven-daily-habits
+        run: |
+          export VITE_BUILD_SHA="$(git rev-parse HEAD)"
+          failed=0
+          for command in 'bun run lint' 'bun run tsc --noEmit' 'bun run test' 'bun run build'; do
+            echo "::group::$command"
+            if bash -e -o pipefail -c "$command"; then
+              echo "$command: success" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "$command: failure" >> "$GITHUB_STEP_SUMMARY"
+              failed=1
+            fi
+            echo '::endgroup::'
+          done
+          echo 'Tidak melakukan deployment atau pengujian visual browser.' >> "$GITHUB_STEP_SUMMARY"
+          exit "$failed"
