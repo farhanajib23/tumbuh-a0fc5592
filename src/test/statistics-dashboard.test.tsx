@@ -22,16 +22,44 @@ function fixture(): HabitData {
   return {
     version: 2,
     habits: [
-      { ...base, id: "read", templateId: "reading", name: "Membaca",
-        categoryId: "learning", target: 30, unit: "menit" },
-      { ...base, id: "priority", templateId: "daily-priorities", name: "Prioritas",
-        categoryId: "focus", target: null, unit: null },
+      {
+        ...base,
+        id: "read",
+        templateId: "reading",
+        name: "Membaca",
+        categoryId: "learning",
+        target: 30,
+        unit: "menit",
+      },
+      {
+        ...base,
+        id: "priority",
+        templateId: "daily-priorities",
+        name: "Prioritas",
+        categoryId: "focus",
+        target: null,
+        unit: null,
+      },
     ],
     entries: [
-      { habitId: "read", date: today, done: false, value: 10, note: null,
-        reflection: null, updatedAt: `${today}T01:00:00Z` },
-      { habitId: "priority", date: today, done: true, value: null, note: null,
-        reflection: null, updatedAt: `${today}T01:00:00Z` },
+      {
+        habitId: "read",
+        date: today,
+        done: false,
+        value: 10,
+        note: null,
+        reflection: null,
+        updatedAt: `${today}T01:00:00Z`,
+      },
+      {
+        habitId: "priority",
+        date: today,
+        done: true,
+        value: null,
+        note: null,
+        reflection: null,
+        updatedAt: `${today}T01:00:00Z`,
+      },
     ],
   };
 }
@@ -45,7 +73,8 @@ describe("Statistik bergaya Dashboard", () => {
     expect(ring.compareDocumentPosition(analytics) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
   });
   it("mengganti filter dan periode tanpa mengubah data", () => {
-    const data = fixture(); const before = JSON.stringify(data);
+    const data = fixture();
+    const before = JSON.stringify(data);
     render(<StatisticsDashboardBody data={data} today={today} onRefresh={vi.fn()} />);
     fireEvent.change(screen.getByLabelText("Kebiasaan"), { target: { value: "read" } });
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "0");

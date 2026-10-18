@@ -22,8 +22,8 @@ export function StatisticsDashboard() {
         <p role="alert">
           {view.loaded.status === "unavailable"
             ? "Penyimpanan browser tidak tersedia."
-            : "Data membutuhkan pemeriksaan; ringkasan parsial tidak dianggap lengkap."}
-          {" "}Data asli tidak diubah oleh halaman ini.
+            : "Data membutuhkan pemeriksaan; ringkasan parsial tidak dianggap lengkap."}{" "}
+          Data asli tidak diubah oleh halaman ini.
         </p>
         <button type="button" className="t-action" onClick={refresh}>
           Coba baca ulang
@@ -42,9 +42,7 @@ export function StatisticsDashboard() {
       </section>
     );
   }
-  return (
-    <StatisticsDashboardBody data={view.loaded.data} today={view.date} onRefresh={refresh} />
-  );
+  return <StatisticsDashboardBody data={view.loaded.data} today={view.date} onRefresh={refresh} />;
 }
 
 export function StatisticsDashboardBody({
@@ -62,9 +60,7 @@ export function StatisticsDashboardBody({
   const descriptionId = useId();
   const report = periodReport(data, end, length, habitId);
   const measured = report.perHabit.filter((row) => row.measurement);
-  const hasNewPresets = report.perHabit.some((row) =>
-    row.habit.templateId?.startsWith("daily-"),
-  );
+  const hasNewPresets = report.perHabit.some((row) => row.habit.templateId?.startsWith("daily-"));
   return (
     <div className="hs-root">
       <header className="page-heading">
@@ -138,7 +134,9 @@ export function StatisticsDashboardBody({
       </section>
       <section className="t-panel hs-summary" aria-label="Ringkasan penyelesaian">
         <h2>Progres periode ini</h2>
-        <p>{report.from} sampai {report.end}</p>
+        <p>
+          {report.from} sampai {report.end}
+        </p>
         <div
           className="t-progress-ring"
           role="progressbar"
@@ -172,13 +170,15 @@ export function StatisticsDashboardBody({
           ))}
         </dl>
         <p className="hp-muted">
-          Ring menunjukkan penyelesaian terjadwal, bukan rata-rata capaian target angka.
-          Belum dicatat tidak dianggap gagal. Konsistensi memakai rasio yang sama, bukan skor baru.
+          Ring menunjukkan penyelesaian terjadwal, bukan rata-rata capaian target angka. Belum
+          dicatat tidak dianggap gagal. Konsistensi memakai rasio yang sama, bukan skor baru.
         </p>
       </section>
       <section className="t-panel hs-analytics" aria-label="Analitik kebiasaan">
         <h2>Tren pelaksanaan</h2>
-        <p>Persentase penyelesaian per hari selama {length} hari, berakhir pada {end}.</p>
+        <p>
+          Persentase penyelesaian per hari selama {length} hari, berakhir pada {end}.
+        </p>
         {report.trend.scheduled === 0 ? (
           <p className="hp-empty">Tidak ada jadwal dalam periode ini. Ubah filter atau periode.</p>
         ) : (
@@ -191,8 +191,8 @@ export function StatisticsDashboardBody({
           </div>
         )}
         <p className="hp-muted">
-          Tinggi batang menunjukkan penyelesaian, bukan volume aktivitas. Rincian membedakan
-          hari tanpa jadwal dari penyelesaian 0%.
+          Tinggi batang menunjukkan penyelesaian, bukan volume aktivitas. Rincian membedakan hari
+          tanpa jadwal dari penyelesaian 0%.
         </p>
         <details>
           <summary>Tabel rincian tren</summary>
@@ -234,7 +234,9 @@ export function StatisticsDashboardBody({
               {report.perHabit.map((row) => (
                 <tr key={row.habit.id}>
                   <th scope="row">{row.habit.name}</th>
-                  <td>{row.progress.done}/{row.progress.scheduled}</td>
+                  <td>
+                    {row.progress.done}/{row.progress.scheduled}
+                  </td>
                   <td>{row.progress.percent === null ? "—" : `${row.progress.percent}%`}</td>
                 </tr>
               ))}
@@ -249,7 +251,9 @@ export function StatisticsDashboardBody({
           mingguan atau bulanan. Satuan berbeda tidak dijumlahkan atau dirata-ratakan.
         </p>
         {measured.length === 0 ? (
-          <p className="hp-empty">Belum ada target angka yang dikenali laporan dalam pilihan ini.</p>
+          <p className="hp-empty">
+            Belum ada target angka yang dikenali laporan dalam pilihan ini.
+          </p>
         ) : (
           <div className="t-table-wrap" role="region" aria-label="Target dan aktual" tabIndex={0}>
             <table>
@@ -268,9 +272,15 @@ export function StatisticsDashboardBody({
                   measurement ? (
                     <tr key={habit.id}>
                       <th scope="row">{habit.name}</th>
-                      <td>{number(measurement.planned)} {measurement.unit}</td>
-                      <td>{number(measurement.actual)} {measurement.unit}</td>
-                      <td>{measurement.recorded}/{measurement.scheduled} hari</td>
+                      <td>
+                        {number(measurement.planned)} {measurement.unit}
+                      </td>
+                      <td>
+                        {number(measurement.actual)} {measurement.unit}
+                      </td>
+                      <td>
+                        {measurement.recorded}/{measurement.scheduled} hari
+                      </td>
                       <td>
                         {measurement.attainment === null
                           ? "—"
@@ -284,8 +294,8 @@ export function StatisticsDashboardBody({
           </div>
         )}
         <p className="hp-muted">
-          — berarti nilai atau target belum tersedia, bukan otomatis nol. Cakupan adalah jumlah
-          hari dengan angka tercatat dibanding hari terjadwal.
+          — berarti nilai atau target belum tersedia, bukan otomatis nol. Cakupan adalah jumlah hari
+          dengan angka tercatat dibanding hari terjadwal.
         </p>
       </section>
       <aside className="t-panel hs-notes" aria-label="Batasan statistik">
