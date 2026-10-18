@@ -44,6 +44,8 @@ jobs:
       - name: Build statis untuk subfolder Pages
         env:
           TUMBUH_PAGES: 'true'
+          VITE_BUILD_SHA: ${{ github.sha }}
+          VITE_BUILD_BRANCH: ${{ github.ref_name }}
         run: bun run build
       - name: Siapkan dan periksa artifact statis
         run: |
@@ -117,5 +119,45 @@ jobs:
             echo "URL: $PAGE_URL"
             echo "Commit: $GITHUB_SHA"
             echo "Branch: $GITHUB_REF_NAME"
-            echo 'Deployment selesai; tampilan dan interaksi masih perlu diperiksa di browser.'
+            echo 'Langkah deploy selesai; verifikasi versi live dijalankan terpisah setelah ini.'
           } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verifikasi commit yang tersaji di live
+        timeout-minutes: 3
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { appendFileSync } from 'node:fs';
+          const expected = process.env.GITHUB_SHA;
+          const branch = process.env.GITHUB_REF_NAME;
+          if (!process.env.PAGE_URL) throw new Error('URL deployment tidak tersedia.');
+          const root = new URL(process.env.PAGE_URL);
+          if (root.protocol !== 'https:') throw new Error('URL deployment harus HTTPS.');
+          if (!root.pathname.endsWith('/')) root.pathname += '/';
+          let matched = false;
+          let observed = 'belum terbaca';
+          let reason = 'Penanda versi belum tersedia';
+          for (let attempt = 1; attempt <= 12; attempt++) {
+            const url = new URL('preview-version.json', root);
+            url.searchParams.set('verify', expected);
+            url.searchParams.set('attempt', String(attempt));
+            try {
+              const response = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(5000) });
+              if (!response.ok) reason = `HTTP ${response.status}`;
+              else {
+                const payload = await response.json();
+                if (payload && typeof payload.commit === 'string' && /^[a-f0-9]{40}$/i.test(payload.commit)) observed = payload.commit;
+                if (payload && payload.commit === expected && payload.branch === branch) { matched = true; break; }
+                reason = 'Commit/branch penanda berbeda atau format belum valid';
+              }
+            } catch { reason = 'Penanda versi live tidak dapat dibaca'; }
+            console.log(`Verifikasi live percobaan ${attempt}: ${reason}`);
+            if (attempt < 12) await new Promise(resolve => setTimeout(resolve, 5000));
+          }
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\n## Verifikasi versi live\nCommit diharapkan: ${expected}\nCommit terbaca: ${observed}\nCocok: ${matched}\nPemeriksaan ini bukan pengujian visual atau seluruh fungsi aplikasi.\n`);
+          if (!matched) throw new Error(`Deploy telah dijalankan, tetapi versi live belum terverifikasi: ${reason}. Tidak ada rollback otomatis.`);
+          console.log('Identitas commit dan branch live cocok dengan artifact deployment.');
+          NODE
