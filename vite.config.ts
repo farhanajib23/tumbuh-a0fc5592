@@ -11,5 +11,14 @@ export default defineConfig({
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
+    // Essai statis pada branch preview; base path dan deployment belum dikonfigurasi.
+    prerender: {
+      enabled: true,
+      autoSubfolderIndex: true,
+      autoStaticPathsDiscovery: true,
+      crawlLinks: true,
+      concurrency: 2,
+      failOnError: true,
+    },
   },
 });
