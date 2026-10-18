@@ -1,0 +1,107 @@
+name: TUMBUH - Diagnosis HTML Pages
+
+on:
+  push:
+    branches: [preview/github-pages]
+    paths:
+      - '.github/workflows/pages-html-diagnostic.yml'
+      - 'vite.config.ts'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Identitas build
+        run: |
+          git rev-parse HEAD
+          node --version
+          bun --version
+      - name: Instalasi terkunci
+        run: bun install --frozen-lockfile
+      - name: Periksa pembungkus konfigurasi
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
+          import { join } from 'node:path';
+          const root = 'node_modules/@lovable.dev/vite-tanstack-config';
+          const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+          console.log(JSON.stringify({ name: pkg.name, version: pkg.version, exports: pkg.exports, main: pkg.main }, null, 2));
+          let remaining = 180;
+          function walk(dir, depth = 0) {
+            if (depth > 5 || remaining <= 0) return;
+            for (const name of readdirSync(dir)) {
+              if (name === 'node_modules' || name.endsWith('.map')) continue;
+              const path = join(dir, name);
+              if (statSync(path).isDirectory()) { walk(path, depth + 1); continue; }
+              if (!/\.(?:js|mjs|cjs|ts)$/.test(name)) continue;
+              const lines = readFileSync(path, 'utf8').split('\n');
+              const selected = new Set();
+              for (let i = 0; i < lines.length; i++) {
+                if (/prerender|tanstackStart|nitro|cloudflare/.test(lines[i])) {
+                  for (let j = Math.max(0, i - 2); j <= Math.min(lines.length - 1, i + 3); j++) selected.add(j);
+                }
+              }
+              for (const i of selected) {
+                if (remaining-- <= 0) return;
+                console.log(`${path}:${i + 1}: ${lines[i].slice(0, 1500)}`);
+              }
+            }
+          }
+          if (existsSync(root)) walk(root);
+          NODE
+      - name: Build dengan prerender yang tersimpan
+        id: build
+        continue-on-error: true
+        run: bun run build
+      - name: Ringkasan HTML dan gate publikasi
+        if: ${{ always() }}
+        env:
+          BUILD_RESULT: ${{ steps.build.outcome }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { appendFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+          import { join } from 'node:path';
+          const found = [];
+          function walk(dir) {
+            for (const name of readdirSync(dir)) {
+              const path = join(dir, name);
+              if (statSync(path).isDirectory()) walk(path);
+              else if (name.endsWith('.html')) found.push(path);
+            }
+          }
+          for (const dir of ['dist', '.output', '.nitro', '.tanstack']) {
+            if (existsSync(dir)) walk(dir);
+          }
+          found.sort();
+          const publicRoots = ['.output/public', 'dist/client', 'dist'];
+          const candidate = publicRoots.find(dir => existsSync(join(dir, 'index.html')) && existsSync(join(dir, 'habit/index.html')));
+          const summary = [
+            '## Diagnosis HTML TUMBUH',
+            `Commit: ${process.env.GITHUB_SHA}`,
+            `Branch: ${process.env.GITHUB_REF_NAME}`,
+            `Build: ${process.env.BUILD_RESULT || 'tidak dijalankan'}`,
+            `Jumlah HTML ditemukan: ${found.length}`,
+            `Folder dengan index.html dan habit/index.html: ${candidate || 'belum ditemukan'}`,
+            '',
+            '```text', ...found.slice(0, 150), '```',
+            '',
+            'Tidak ada deployment. Keberadaan HTML belum membuktikan base path dan interaksi browser benar.',
+          ].join('\n');
+          console.log(summary);
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary + '\n');
+          if (process.env.BUILD_RESULT !== 'success' || !candidate) process.exitCode = 1;
+          NODE
