@@ -1,4 +1,4 @@
-name: TUMBUH - Perbaikan format 11 kebiasaan
+name: TUMBUH - Perbaikan lint Statistik
 
 on:
   push:
@@ -31,21 +31,25 @@ jobs:
           bun-version: latest
       - name: Instalasi terkunci
         run: bun install --frozen-lockfile
-      - name: Format source mengikuti konfigurasi proyek
-        run: bun run prettier --write src scripts
-      - name: Simpan hanya perubahan formatting pada branch fitur
+      - name: Format hanya komponen dan test Statistik
+        run: >-
+          bun run prettier --write
+          src/components/tumbuh/statistics-dashboard.tsx
+          src/test/statistics-dashboard.test.tsx
+      - name: Simpan hasil format ke branch fitur tanpa force-push
         run: |
-          git add -- src scripts
+          git add -- src/components/tumbuh/statistics-dashboard.tsx src/test/statistics-dashboard.test.tsx
           if ! git diff --cached --quiet; then
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git commit -m 'style(habit): apply repository Prettier configuration'
+            git commit -m 'style(statistics): apply repository Prettier formatting'
             git push origin HEAD:refs/heads/feature/eleven-daily-habits
           fi
           {
-            echo '## Formatting selesai'
+            echo '## Perbaikan format Statistik'
             echo "Commit pemicu: $GITHUB_SHA"
             echo "Commit source yang diperiksa: $(git rev-parse HEAD)"
+            echo 'Perubahan formatter dibatasi ke dua file Statistik; aturan lint dan assertion tidak dimatikan.'
             echo 'Commit bot tidak diandalkan untuk memicu workflow lain; pemeriksaan dijalankan di workflow ini.'
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Periksa source setelah formatting
@@ -65,5 +69,5 @@ jobs:
             fi
             echo '::endgroup::'
           done
-          echo 'Tidak melakukan deployment atau pengujian visual browser.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Tidak melakukan deployment, merge, atau pengujian visual browser.' >> "$GITHUB_STEP_SUMMARY"
           exit "$failed"
