@@ -1,0 +1,72 @@
+.app-shell .hs-root {
+  display: grid;
+  gap: var(--t-space-6, 24px);
+  min-width: 0;
+  max-width: 1440px;
+  margin-inline: auto;
+}
+.app-shell .hs-root .page-heading {
+  margin-bottom: 0;
+}
+.app-shell .hs-root .t-panel {
+  display: grid;
+  gap: var(--t-space-4, 16px);
+  min-width: 0;
+  margin-top: 0;
+}
+.app-shell .hs-root .t-panel p {
+  margin-block: 0;
+}
+.app-shell .hs-summary {
+  text-align: center;
+}
+.app-shell .hs-summary .t-progress-ring {
+  width: 160px;
+  height: 160px;
+  margin: 8px auto;
+}
+.app-shell .hs-summary .t-counts {
+  margin-top: 0;
+  text-align: left;
+}
+.app-shell .hs-denominator {
+  font-weight: 600;
+}
+.app-shell .hs-analytics .t-trend {
+  height: 144px;
+}
+.app-shell .hs-root .t-table-wrap {
+  min-width: 0;
+}
+.app-shell .hs-root table {
+  line-height: 1.7;
+}
+.app-shell .hs-root th,
+.app-shell .hs-root td {
+  overflow-wrap: anywhere;
+}
+.app-shell .hs-root summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  color: var(--primary);
+  font-weight: 600;
+}
+.app-shell .hs-notes {
+  border-inline-start: 4px solid var(--primary);
+}
+@media (max-width: 767px) {
+  .app-shell .hs-root .hx-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .app-shell .hs-root .page-heading {
+    flex-direction: column;
+  }
+  .app-shell .hs-root .page-heading > button {
+    width: 100%;
+  }
+  .app-shell .hs-summary .t-counts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
