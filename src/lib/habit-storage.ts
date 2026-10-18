@@ -1,4 +1,5 @@
 import { habitCatalog, habitCategories } from './habit-catalog';
+import { dailyInputKind, dailyPreset, isDailyRecord, validDailyEntry } from './habit-daily-data';
 import { isDateKey } from './habit-metrics';
 import { emptyHabitData, isEntryDetail, isSleepTarget, parseTargetHistory, type Habit, type HabitData, type HabitEntry, type Schedule, type ScheduleEntry } from './habit-model';
 
@@ -36,7 +37,7 @@ function parseHabit(v: unknown): Habit | null {
   const history = parseHistory(v['scheduleHistory']); const status = v['status'];
   if (!id || !name || !category || !history || (status !== 'active' && status !== 'paused' && status !== 'archived')) return null;
   const sleepTarget = v['sleepTarget'];
-  if (sleepTarget !== undefined && (!isSleepTarget(sleepTarget) || v['templateId'] !== 'consistent-sleep')) return null;
+  if (sleepTarget !== undefined && (!isSleepTarget(sleepTarget) || (v['templateId'] !== 'consistent-sleep' && v['templateId'] !== 'daily-wake-0430'))) return null;
   const target = v['target']; const reminder = v['reminderTime'];
   const habit: Habit = {
     id, templateId: text(v['templateId']), name, categoryId: category.id,
@@ -56,12 +57,12 @@ function parseHabit(v: unknown): Habit | null {
 }
 function parseEntry(v: unknown): HabitEntry | null {
   if (!isRecord(v)) return null;
-  const habitId = text(v['habitId']); const value = v['value']; const reflection = v['reflection']; const detail = v['detail'];
-  if (!habitId || !isDateKey(v['date']) || typeof v['done'] !== 'boolean' || (detail !== undefined && !isEntryDetail(detail))) return null;
+  const habitId = text(v['habitId']); const value = v['value']; const reflection = v['reflection']; const detail = v['detail']; const daily = v['daily'];
+  if (!habitId || !isDateKey(v['date']) || typeof v['done'] !== 'boolean' || (detail !== undefined && !isEntryDetail(detail)) || (daily !== undefined && !isDailyRecord(daily))) return null;
   return {
     habitId, date: v['date'], done: v['done'], value: typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null,
     note: text(v['note']), reflection: reflection === 'membantu' || reflection === 'biasa' || reflection === 'tidak-cocok' ? reflection : null,
-    updatedAt: text(v['updatedAt']) ?? '', ...(isEntryDetail(detail) ? { detail } : {}),
+    updatedAt: text(v['updatedAt']) ?? '', ...(isEntryDetail(detail) ? { detail } : {}), ...(isDailyRecord(daily) ? { daily } : {}),
   };
 }
 function canonical(v: unknown): string {
@@ -90,9 +91,10 @@ export function loadHabitData(storage: StorageLike | null): LoadResult {
   for (const item of parsed['entries']) {
     const entry = parseEntry(item);
     const habit = entry ? habits.find((h) => h.id === entry.habitId) : undefined;
-    const kind = habitCatalog.find((t) => t.id === habit?.templateId)?.inputKind;
+    const preset = dailyPreset(habit?.templateId);
+    const kind = dailyInputKind(habit?.templateId) ?? habitCatalog.find((t) => t.id === habit?.templateId)?.inputKind;
     const special = kind === 'journal' || kind === 'mood' || kind === 'time';
-    if (!entry || (entry.detail && (!habit || entry.detail.kind !== kind || entry.value !== null)) || (special && entry.done && !entry.detail)) { dropped += 1; continue; }
+    if (!entry || !validDailyEntry(entry, preset) || (entry.detail && (!habit || entry.detail.kind !== kind || entry.value !== null)) || (special && entry.done && !entry.detail)) { dropped += 1; continue; }
     byKey.set(`${entry.habitId}|${entry.date}`, entry);
   }
   const data: HabitData = { version: 2, habits, entries: [...byKey.values()] };
