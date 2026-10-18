@@ -141,10 +141,10 @@ export function loadHabitData(storage: StorageLike | null): LoadResult {
   };
 }
 
-// Menyimpan data kosong di atas data yang tidak terbaca hanya aman jika cadangan berhasil.
+// Data yang tidak terbaca atau pulih sebagian hanya boleh diganti setelah cadangan berhasil.
 export function isSaveSafe(result: LoadResult): boolean {
   if (result.status === 'unavailable') return false;
-  if (result.status === 'unreadable') return result.backedUp;
+  if (result.status === 'unreadable' || result.status === 'recovered') return result.backedUp;
   return true;
 }
 
