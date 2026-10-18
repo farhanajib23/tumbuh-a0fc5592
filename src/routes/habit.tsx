@@ -3,7 +3,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/tumbuh/app-shell";
 import { HabitWorkspace } from "@/components/tumbuh/habit-workspace";
 import { DailyHabitsPanel } from "@/components/tumbuh/daily-habits-panel";
-import { HabitHistory, HabitStatistics } from "@/components/tumbuh/habit-explore";
+import { HabitHistory } from "@/components/tumbuh/habit-explore";
+import { StatisticsDashboard } from "@/components/tumbuh/statistics-dashboard";
 import { parseHabitSearch } from "@/lib/habit-explore";
 import { pageMeta } from "@/lib/modules";
 
@@ -53,7 +54,7 @@ function HabitPage() {
       {view === "riwayat" ? (
         <HabitHistory />
       ) : view === "statistik" ? (
-        <HabitStatistics />
+        <StatisticsDashboard />
       ) : (
         <>
           <div className="mb-4 flex flex-wrap gap-2">
