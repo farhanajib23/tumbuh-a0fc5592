@@ -25,13 +25,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Gabungkan dan periksa HTML asli tanpa build React
+      - name: Gabungkan dan periksa HTML tanpa build React
         shell: python
         run: |
           import hashlib, json, os
           from pathlib import Path
           src = Path('standalone-source')
           content = (src / 'page-prefix.html').read_bytes() + (src / 'page-suffix.html').read_bytes()
+          if content.count(b'</body>') != 1:
+              raise SystemExit('Penutup body HTML tidak valid.')
+          content = content.replace(b'</body>', (src / 'habit-sheet.html').read_bytes() + b'</body>')
           digest = hashlib.sha256(content).hexdigest()
           if digest != (src / 'expected.sha256').read_text().strip():
               raise SystemExit('Checksum HTML berbeda; publikasi diblokir.')
