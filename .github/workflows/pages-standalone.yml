@@ -1,18 +1,14 @@
 name: TUMBUH - Preview HTML mandiri
-
 on:
   push:
     branches: [preview/standalone-html]
-    paths: ['standalone/**']
+    paths: ['standalone-source/**', '.github/workflows/pages-standalone.yml']
   workflow_dispatch:
-
 permissions:
   contents: read
-
 concurrency:
   group: tumbuh-pages
   cancel-in-progress: false
-
 jobs:
   publish:
     if: github.repository == 'farhanajib23/tumbuh-a0fc5592' && github.ref == 'refs/heads/preview/standalone-html'
@@ -29,33 +25,28 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Siapkan HTML tanpa instalasi atau build React
+      - name: Gabungkan dan periksa HTML asli tanpa build React
         shell: python
         run: |
           import hashlib, json, os
           from pathlib import Path
-          source = Path('standalone/index.html')
-          if not source.is_file():
-              raise SystemExit('File sumber standalone/index.html belum tersedia.')
-          content = source.read_bytes()
-          text = content.decode('utf-8')
-          if '<!doctype html>' not in text.lower() or '</html>' not in text.lower():
-              raise SystemExit('Sumber bukan dokumen HTML lengkap.')
+          src = Path('standalone-source')
+          content = (src / 'page-prefix.html').read_bytes() + (src / 'page-suffix.html').read_bytes()
+          digest = hashlib.sha256(content).hexdigest()
+          if digest != (src / 'expected.sha256').read_text().strip():
+              raise SystemExit('Checksum HTML berbeda; publikasi diblokir.')
           site = Path('.standalone-site')
           site.mkdir()
           (site / 'index.html').write_bytes(content)
           (site / '.nojekyll').touch()
-          version = {'commit': os.environ['GITHUB_SHA'], 'branch': os.environ['GITHUB_REF_NAME'], 'sha256': hashlib.sha256(content).hexdigest()}
-          (site / 'preview-version.json').write_text(json.dumps(version) + '\n', encoding='utf-8')
-          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
-              summary.write('## Preview HTML mandiri\nSumber: standalone/index.html\nCommit: ' + version['commit'] + '\nSHA256 HTML: ' + version['sha256'] + '\nTidak menjalankan React, Bun, npm, atau formatter.\n')
+          (site / 'preview-version.json').write_text(json.dumps({'commit': os.environ['GITHUB_SHA'], 'branch': os.environ['GITHUB_REF_NAME'], 'sha256': digest}), encoding='utf-8')
+          print('Checksum HTML cocok:', digest)
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .standalone-site
-      - name: Terbitkan ke alamat Pages tetap
-        id: deployment
+      - id: deployment
         uses: actions/deploy-pages@v4
-      - name: Verifikasi HTML dan commit yang tersaji
+      - name: Verifikasi HTML yang tersaji
         env:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
         shell: python
@@ -66,26 +57,24 @@ jobs:
           from urllib.request import Request, urlopen
           root = os.environ.get('PAGE_URL', '').rstrip('/') + '/'
           if urlparse(root).scheme != 'https':
-              raise SystemExit('URL deployment HTTPS tidak tersedia.')
-          sha = os.environ['GITHUB_SHA']
-          expected = hashlib.sha256(Path('standalone/index.html').read_bytes()).hexdigest()
+              raise SystemExit('URL HTTPS tidak tersedia.')
+          expected = Path('standalone-source/expected.sha256').read_text().strip()
           matched = False
           for attempt in range(12):
               try:
-                  suffix = '?verify=' + sha + '&attempt=' + str(attempt)
-                  with urlopen(Request(root + 'preview-version.json' + suffix, headers={'Cache-Control': 'no-cache'}), timeout=10) as response:
+                  query = '?verify=' + os.environ['GITHUB_SHA'] + '&attempt=' + str(attempt)
+                  with urlopen(Request(root + 'preview-version.json' + query, headers={'Cache-Control': 'no-cache'}), timeout=10) as response:
                       version = json.load(response)
-                  with urlopen(Request(root + 'index.html' + suffix, headers={'Cache-Control': 'no-cache'}), timeout=10) as response:
-                      observed = hashlib.sha256(response.read()).hexdigest()
-                  matched = version.get('commit') == sha and version.get('branch') == os.environ['GITHUB_REF_NAME'] and version.get('sha256') == expected and observed == expected
+                  with urlopen(Request(root + 'index.html' + query, headers={'Cache-Control': 'no-cache'}), timeout=10) as response:
+                      digest = hashlib.sha256(response.read()).hexdigest()
+                  matched = version.get('commit') == os.environ['GITHUB_SHA'] and version.get('branch') == os.environ['GITHUB_REF_NAME'] and version.get('sha256') == expected and digest == expected
                   if matched:
                       break
               except Exception as error:
-                  print('Belum terverifikasi:', type(error).__name__)
+                  print(type(error).__name__)
               if attempt < 11:
                   time.sleep(5)
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
-              summary.write('\nURL: ' + root + '\nVersi live cocok: ' + str(matched) + '\nBukan pengujian visual browser.\n')
+              summary.write('URL: ' + root + '\nHTML live cocok: ' + str(matched) + '\nBukan pengujian visual browser.\n')
           if not matched:
-              raise SystemExit('Deployment telah dicoba, tetapi file live belum cocok. Tidak ada rollback otomatis.')
-          print('HTML live cocok dengan sumber:', root)
+              raise SystemExit('Versi live belum cocok; tidak ada rollback otomatis.')
